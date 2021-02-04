@@ -14,7 +14,7 @@ def sendRequest(String reqMethod, String URL, String message, Boolean failOnErro
     def request = new URL(URL).openConnection()
     request.setDoOutput(true)
     request.setRequestMethod(reqMethod)
-    String auth = "*****:*****"
+    String auth = args[0]
     String encoded = Base64.getEncoder().encodeToString(auth.getBytes(StandardCharsets.UTF_8))
     request.setRequestProperty("Authorization","Basic $encoded")
     if(!message.isEmpty())
