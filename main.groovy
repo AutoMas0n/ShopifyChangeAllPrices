@@ -2,12 +2,18 @@ import groovy.json.JsonSlurper
 
 import java.nio.charset.StandardCharsets
 
+def productCount
+
 //def response = sendRequest("GET","https://fatima-jewellery.myshopify.com/admin/api/2021-01/shop.json","",true)
 def result = sendRequest("GET","https://fatima-jewellery.myshopify.com/admin/api/2021-01/smart_collections.json","",true).result
 def allProductsCollectionID = result.smart_collections[0].id
-println allProductsCollectionID
-result = sendRequest("GET","https://fatima-jewellery.myshopify.com/admin/api/2021-01/smart_collections/${allProductsCollectionID}.json","",true).result
-println result
+def allProductsHandle = result.smart_collections[0].handle
+println "$allProductsHandle:$allProductsCollectionID"
+productCount = sendRequest("GET","https://fatima-jewellery.myshopify.com/admin/products/count.json?collection_id=${allProductsCollectionID}","",true).result.count
+println "Total number of products: $productCount"
+
+result = sendRequest("GET","https://fatima-jewellery.myshopify.com/admin/api/2021-01/collections/${allProductsCollectionID}/products.json","",true).result
+
 
 def sendRequest(String reqMethod, String URL, String message, Boolean failOnError){
     def response = [:]
