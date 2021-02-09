@@ -1,4 +1,5 @@
 import groovy.json.JsonSlurper
+//import sun.net.www.protocol.https.HttpsURLConnectionImpl
 
 import java.nio.charset.StandardCharsets
 
@@ -15,6 +16,9 @@ println "Total number of products: $productCount"
 result = sendRequest("GET","https://fatima-jewellery.myshopify.com/admin/api/2021-01/collections/${allProductsCollectionID}/products.json","",true).result
 
 
+
+//TODO Find out how to resend same request using request object
+//https://stackoverflow.com/questions/12363913/does-httpsurlconnection-getinputstream-makes-automatic-retries
 def sendRequest(String reqMethod, String URL, String message, Boolean failOnError){
     def response = [:]
     def request = new URL(URL).openConnection()
@@ -26,6 +30,16 @@ def sendRequest(String reqMethod, String URL, String message, Boolean failOnErro
     if(!message.isEmpty())
         request.getOutputStream().write(message.getBytes("UTF-8"))
     def getRC = request.getResponseCode()
+    println request.getHeaderFields()
+    println "\n\n###################################\n\n"
+    def rateLimit = request.getHeaderField("Retry-After")
+    if(rateLimit == null){
+//        sleep rateLimit * 1000
+        request.openConnection()
+        getRC = request.getResponseCode()
+        println request.getHeaderFields()
+//        println request.getHeaderField("X-Shopify-Shop-Api-Call-Limit")
+    }
     response.rc = getRC
     def slurper = new JsonSlurper()
     try {
@@ -34,10 +48,11 @@ def sendRequest(String reqMethod, String URL, String message, Boolean failOnErro
         response.result = result
     } catch (Exception ignored) {
         if(failOnError){
-            assert false : "Request made to $URL failed.\nResponse code is: $getRC\n${request.getResponseMessage()}\n${request.getErrorStream().getText()}"
+                        assert false : "Request made to $URL failed.\nResponse code is: $getRC\n${request.getResponseMessage()}\n${request.getErrorStream().getText()}"
         } else{
             response.result = request.getErrorStream().getText()
         }
     }
+    System.exit(0)
     return response
 }
