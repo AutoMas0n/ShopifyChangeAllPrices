@@ -5,6 +5,8 @@ import java.util.concurrent.ExecutionException
 
 //def response = sendRequest("GET","https://fatima-jewellery.myshopify.com/admin/api/2021-01/shop.json","",true)
 
+//TODO Pagination https://shopify.dev/tutorials/make-paginated-requests-to-rest-admin-api
+
 
 @Field def MAX_RETRIES = 5
 def result
@@ -21,20 +23,17 @@ retry.runWithRetries(MAX_RETRIES, () -> {
 def productCount
 println "$allProductsHandle:$allProductsCollectionID"
 
-while(true) {
-    retry.runWithRetries(MAX_RETRIES, () -> {
-        productCount = sendRequest("GET", "https://fatima-jewellery.myshopify.com/admin/products/count.json?collection_id=${allProductsCollectionID}", "", true).result.count
-    })
-    println "Total number of products: $productCount"
+retry.runWithRetries(MAX_RETRIES, () -> {
+    productCount = sendRequest("GET", "https://fatima-jewellery.myshopify.com/admin/products/count.json?collection_id=${allProductsCollectionID}", "", true).result.count
+})
+println "Total number of products: $productCount"
 
-    retry.runWithRetries(MAX_RETRIES, () -> {
-        result = sendRequest("GET", "https://fatima-jewellery.myshopify.com/admin/api/2021-01/collections/${allProductsCollectionID}/products.json", "", true).result
-    })
-}
+retry.runWithRetries(MAX_RETRIES, () -> {
+    result = sendRequest("GET", "https://fatima-jewellery.myshopify.com/admin/api/2021-01/collections/${allProductsCollectionID}/products.json", "", true)
+})
+println result.dump()
 
 
-//TODO Find out how to resend same request using request object
-//https://stackoverflow.com/questions/12363913/does-httpsurlconnection-getinputstream-makes-automatic-retries
 def sendRequest(String reqMethod, String URL, String message, Boolean failOnError){
     def response = [:]
     def request = new URL(URL).openConnection()
@@ -52,8 +51,10 @@ def sendRequest(String reqMethod, String URL, String message, Boolean failOnErro
         sleep rateLimit * 1000
         response.retry
     }
-    println request.getHeaderField("X-Shopify-Shop-Api-Call-Limit")
+    //todo remove this
+//    println request.getHeaderField("X-Shopify-Shop-Api-Call-Limit")
     response.rc = getRC
+    response.headers = request.getHeaderFields()
     def slurper = new JsonSlurper()
     try {
         if(request.getInputStream().available())
@@ -82,7 +83,6 @@ class Retry implements  ThrowingTask {
                 return true;
             }
             catch (Exception  e) {
-                println "RETRYING....."
                 if (++count >= maxRetries)
                     throw new Exception("Maximum amount of retries reached, giving up.")
             }
