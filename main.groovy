@@ -29,7 +29,7 @@ retry.runWithRetries(MAX_RETRIES, () -> {
 println "Total number of products: $productCount"
 
 retry.runWithRetries(MAX_RETRIES, () -> {
-    result = sendRequest("GET", "https://fatima-jewellery.myshopify.com/admin/api/2021-01/collections/${allProductsCollectionID}/products.json", "", true)
+    result = sendRequest("GET", "https://fatima-jewellery.myshopify.com/admin/api/2021-01/collections/${allProductsCollectionID}/products.json?limit=250", "", true)
 })
 println result.dump()
 
