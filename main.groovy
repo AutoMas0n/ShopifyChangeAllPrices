@@ -1,24 +1,39 @@
 import groovy.json.JsonSlurper
-//import sun.net.www.protocol.https.HttpsURLConnectionImpl
-
+import groovy.transform.Field
 import java.nio.charset.StandardCharsets
-
-def productCount
+import java.util.concurrent.ExecutionException
 
 //def response = sendRequest("GET","https://fatima-jewellery.myshopify.com/admin/api/2021-01/shop.json","",true)
-def result = sendRequest("GET","https://fatima-jewellery.myshopify.com/admin/api/2021-01/smart_collections.json","",true).result
-def allProductsCollectionID = result.smart_collections[0].id
-def allProductsHandle = result.smart_collections[0].handle
+
+//TODO Pagination https://shopify.dev/tutorials/make-paginated-requests-to-rest-admin-api
+
+
+@Field def MAX_RETRIES = 5
+def result
+Retry retry = new Retry()
+
+def allProductsCollectionID
+def allProductsHandle
+retry.runWithRetries(MAX_RETRIES, () -> {
+    result = sendRequest("GET", "https://fatima-jewellery.myshopify.com/admin/api/2021-01/smart_collections.json", "", true).result
+    allProductsCollectionID = result.smart_collections[0].id
+    allProductsHandle = result.smart_collections[0].handle
+})
+
+def productCount
 println "$allProductsHandle:$allProductsCollectionID"
-productCount = sendRequest("GET","https://fatima-jewellery.myshopify.com/admin/products/count.json?collection_id=${allProductsCollectionID}","",true).result.count
+
+retry.runWithRetries(MAX_RETRIES, () -> {
+    productCount = sendRequest("GET", "https://fatima-jewellery.myshopify.com/admin/products/count.json?collection_id=${allProductsCollectionID}", "", true).result.count
+})
 println "Total number of products: $productCount"
 
-result = sendRequest("GET","https://fatima-jewellery.myshopify.com/admin/api/2021-01/collections/${allProductsCollectionID}/products.json","",true).result
+retry.runWithRetries(MAX_RETRIES, () -> {
+    result = sendRequest("GET", "https://fatima-jewellery.myshopify.com/admin/api/2021-01/collections/${allProductsCollectionID}/products.json?limit=250", "", true)
+})
+println result.dump()
 
 
-
-//TODO Find out how to resend same request using request object
-//https://stackoverflow.com/questions/12363913/does-httpsurlconnection-getinputstream-makes-automatic-retries
 def sendRequest(String reqMethod, String URL, String message, Boolean failOnError){
     def response = [:]
     def request = new URL(URL).openConnection()
@@ -30,29 +45,50 @@ def sendRequest(String reqMethod, String URL, String message, Boolean failOnErro
     if(!message.isEmpty())
         request.getOutputStream().write(message.getBytes("UTF-8"))
     def getRC = request.getResponseCode()
-    println request.getHeaderFields()
-    println "\n\n###################################\n\n"
     def rateLimit = request.getHeaderField("Retry-After")
-    if(rateLimit == null){
-//        sleep rateLimit * 1000
-        request.openConnection()
-        getRC = request.getResponseCode()
-        println request.getHeaderFields()
-//        println request.getHeaderField("X-Shopify-Shop-Api-Call-Limit")
+    if(rateLimit != null){
+        println "########################## RATE WAS LIMITED #####################################"
+        sleep rateLimit * 1000
+        response.retry
     }
+    //todo remove this
+//    println request.getHeaderField("X-Shopify-Shop-Api-Call-Limit")
     response.rc = getRC
+    response.headers = request.getHeaderFields()
     def slurper = new JsonSlurper()
     try {
         if(request.getInputStream().available())
-            result = slurper.parseText(request.getInputStream().getText())
-        response.result = result
-    } catch (Exception ignored) {
+            response.result = slurper.parseText(request.getInputStream().getText())
+    } catch (Exception e) {
         if(failOnError){
-                        assert false : "Request made to $URL failed.\nResponse code is: $getRC\n${request.getResponseMessage()}\n${request.getErrorStream().getText()}"
+            assert false : "Request made to $URL failed.\nResponse code is: $getRC\n${request.getResponseMessage()}\n" +
+                    "${request.getErrorStream().getText()}\nException: $e"
         } else{
             response.result = request.getErrorStream().getText()
         }
     }
-    System.exit(0)
     return response
+}
+
+interface ThrowingTask {
+    void run() throws ExecutionException;
+}
+
+class Retry implements  ThrowingTask {
+    boolean runWithRetries(int maxRetries, ThrowingTask t) {
+        int count = 0;
+        while (count < maxRetries) {
+            try {
+                t.run();
+                return true;
+            }
+            catch (Exception  e) {
+                if (++count >= maxRetries)
+                    throw new Exception("Maximum amount of retries reached, giving up.")
+            }
+        }
+    }
+
+    @Override
+    void run() throws ExecutionException {    }
 }
