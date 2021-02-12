@@ -60,12 +60,11 @@ while(paginate){
             retry.runWithRetries(MAX_RETRIES, () -> {
                 pageResponse = sendRequest("GET", "$nextPageLink", "", true)
             })
-            pageResponse.result.products.each{
+            pageResponse.products.each{
 //                productList.add(it.id)
                 println it.id
             }
-            page = pageResponse.result.headers.Link
-            println page
+            page = pageResponse.headers.Link
         }
     } else{
         paginate = false
@@ -112,6 +111,8 @@ def sendRequest(String reqMethod, String URL, String message, Boolean failOnErro
     try {
         if(request.getInputStream().available())
             response.result = slurper.parseText(request.getInputStream().getText())
+        else
+            throw new Exception("failed to get result from inputStream, treating as a failure")
     } catch (Exception e) {
         if(failOnError){
             assert false : "Request made to $URL failed.\nResponse code is: $getRC\n${request.getResponseMessage()}\n" +
