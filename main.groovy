@@ -29,7 +29,7 @@ retry.runWithRetries(MAX_RETRIES, () -> {
 println "Total number of products: $productCount"
 
 def products
-def productList = [:]
+def productList = []
 noOfProductsToDisplay = productCount as int
 while(noOfProductsToDisplay > MAX_LIMIT){
 //    retry.runWithRetries(MAX_RETRIES, () -> {
@@ -40,20 +40,41 @@ while(noOfProductsToDisplay > MAX_LIMIT){
 }
 
 
-retry.runWithRetries(MAX_RETRIES, () -> {
-    products = sendRequest("GET", "$myStore${apiEndpoint}collections/${allProductsCollectionID}/products.json?limit=4", "", true).result.products
-})
 
-productList= products.withDefault(productList.&get)
 
 retry.runWithRetries(MAX_RETRIES, () -> {
-    products = sendRequest("GET", "$myStore${apiEndpoint}collections/${allProductsCollectionID}/products.json?limit=1", "", true).result.products
+    result = sendRequest("GET", "$myStore${apiEndpoint}collections/${allProductsCollectionID}/products.json?limit=20", "", true)
 })
 
-productList.each {
-    println it.id
+boolean paginate = true
+def nextPageLink
+def page = result.headers.Link
+def pageResponse
+while(paginate){
+    if(page!=null) {
+        page.each {
+            nextPageLink = it
+            if(nextPageLink.contains(',')) nextPageLink = nextPageLink.split(',')[1]
+            nextPageLink = nextPageLink.split("<")[1]
+            nextPageLink = nextPageLink.split(">")[0]
+            retry.runWithRetries(MAX_RETRIES, () -> {
+                pageResponse = sendRequest("GET", "$nextPageLink", "", true)
+            })
+            pageResponse.result.products.each{
+//                productList.add(it.id)
+                println it.id
+            }
+            page = pageResponse.result.headers.Link
+            println page
+        }
+    } else{
+        paginate = false
+    }
 }
 
+println productList.size()
+
+//println result.dump()
 
 //def productID = result.products[0].id
 //def productBody = result.products.body_html
