@@ -57,6 +57,7 @@ while(paginate){
             if(nextPageLink.contains(',')) nextPageLink = nextPageLink.split(',')[1]
             nextPageLink = nextPageLink.split("<")[1]
             nextPageLink = nextPageLink.split(">")[0]
+            println nextPageLink
             retry.runWithRetries(MAX_RETRIES, () -> {
                 pageResponse = sendRequest("GET", "$nextPageLink", "", true)
             })
