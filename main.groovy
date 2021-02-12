@@ -3,19 +3,19 @@ import groovy.transform.Field
 import java.nio.charset.StandardCharsets
 import java.util.concurrent.ExecutionException
 
-//def response = sendRequest("GET","https://fatima-jewellery.myshopify.com/admin/api/2021-01/shop.json","",true)
+@Field def myStore = "https://fatima-jewellery.myshopify.com"
+@Field def apiEndpoint = "/admin/api/2021-01/"
+@Field def MAX_RETRIES = 10
+@Field def MAX_LIMIT = 250
+@Field def noOfProductsToDisplay
 
-//TODO Pagination https://shopify.dev/tutorials/make-paginated-requests-to-rest-admin-api
-
-
-@Field def MAX_RETRIES = 5
 def result
 Retry retry = new Retry()
 
 def allProductsCollectionID
 def allProductsHandle
 retry.runWithRetries(MAX_RETRIES, () -> {
-    result = sendRequest("GET", "https://fatima-jewellery.myshopify.com/admin/api/2021-01/smart_collections.json", "", true).result
+    result = sendRequest("GET", "$myStore${apiEndpoint}smart_collections.json", "", true).result
     allProductsCollectionID = result.smart_collections[0].id
     allProductsHandle = result.smart_collections[0].handle
 })
@@ -24,14 +24,46 @@ def productCount
 println "$allProductsHandle:$allProductsCollectionID"
 
 retry.runWithRetries(MAX_RETRIES, () -> {
-    productCount = sendRequest("GET", "https://fatima-jewellery.myshopify.com/admin/products/count.json?collection_id=${allProductsCollectionID}", "", true).result.count
+    productCount = sendRequest("GET", "$myStore/admin/products/count.json?collection_id=${allProductsCollectionID}", "", true).result.count
 })
 println "Total number of products: $productCount"
 
+def products
+def productList = [:]
+noOfProductsToDisplay = productCount as int
+while(noOfProductsToDisplay > MAX_LIMIT){
+//    retry.runWithRetries(MAX_RETRIES, () -> {
+        products = sendRequest("GET", "$myStore${apiEndpoint}collections/${allProductsCollectionID}/products.json?limit=$MAX_LIMIT", "", true).result.products
+//    })
+    productList= products.withDefault(productList.&get)
+    noOfProductsToDisplay = noOfProductsToDisplay - MAX_LIMIT
+}
+
+
 retry.runWithRetries(MAX_RETRIES, () -> {
-    result = sendRequest("GET", "https://fatima-jewellery.myshopify.com/admin/api/2021-01/collections/${allProductsCollectionID}/products.json?limit=250", "", true)
+    products = sendRequest("GET", "$myStore${apiEndpoint}collections/${allProductsCollectionID}/products.json?limit=4", "", true).result.products
 })
-println result.dump()
+
+productList= products.withDefault(productList.&get)
+
+retry.runWithRetries(MAX_RETRIES, () -> {
+    products = sendRequest("GET", "$myStore${apiEndpoint}collections/${allProductsCollectionID}/products.json?limit=1", "", true).result.products
+})
+
+productList.each {
+    println it.id
+}
+
+
+//def productID = result.products[0].id
+//def productBody = result.products.body_html
+//println productID
+////println productBody
+//
+////individual product
+//retry.runWithRetries(MAX_RETRIES, () -> {
+//    result = sendRequest("GET", "$myStore${apiEndpoint}products/${productID}.json", "", true).result
+//})
 
 
 def sendRequest(String reqMethod, String URL, String message, Boolean failOnError){
