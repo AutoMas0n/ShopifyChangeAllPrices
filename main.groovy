@@ -7,7 +7,6 @@ import java.util.concurrent.ExecutionException
 @Field def apiEndpoint = "/admin/api/2021-01/"
 @Field def MAX_RETRIES = 10
 @Field def ITEM_PER_PAGE_LIMIT = 250
-@Field def noOfProductsToDisplay
 @Field def noOfRetries = 0
 
 def result
@@ -34,7 +33,7 @@ def productList = []
 
 def pageResponse
 noOfRetries += retry.runWithRetries(MAX_RETRIES, () -> {
-    pageResponse = sendRequest("GET", "$myStore${apiEndpoint}collections/${allProductsCollectionID}/products.json?limit=100", "", true)
+    pageResponse = sendRequest("GET", "$myStore${apiEndpoint}collections/${allProductsCollectionID}/products.json?limit=$ITEM_PER_PAGE_LIMIT", "", true)
 })
 
 println "Getting all Product IDs..."
@@ -43,20 +42,23 @@ def nextPageLink
 def headerLink = pageResponse.headers.Link
 pageResponse.result.products.each { productList.add(it.id) }
 while(paginate){
-    if(headerLink.size() < 1) assert false: "Pagination failed. Could not get link to pages"
-    headerLink.each {
-        nextPageLink = it
-        if(nextPageLink.contains("rel=\"next\"")) {
-            if (nextPageLink.contains(',')) nextPageLink = nextPageLink.split(',')[1]
-            nextPageLink = nextPageLink.split("<")[1]
-            nextPageLink = nextPageLink.split(">")[0]
-            noOfRetries += retry.runWithRetries(MAX_RETRIES, () -> {
-                pageResponse = sendRequest("GET", "$nextPageLink", "", true)
-            })
-            pageResponse.result.products.each { productList.add(it.id) }
-            headerLink = pageResponse.headers.Link
-        } else{
-            paginate = false
+    if(headerLink == null){
+        paginate = false
+    } else {
+        headerLink.each {
+            nextPageLink = it
+            if (nextPageLink.contains("rel=\"next\"")) {
+                if (nextPageLink.contains(',')) nextPageLink = nextPageLink.split(',')[1]
+                nextPageLink = nextPageLink.split("<")[1]
+                nextPageLink = nextPageLink.split(">")[0]
+                noOfRetries += retry.runWithRetries(MAX_RETRIES, () -> {
+                    pageResponse = sendRequest("GET", "$nextPageLink", "", true)
+                })
+                pageResponse.result.products.each { productList.add(it.id) }
+                headerLink = pageResponse.headers.Link
+            } else {
+                paginate = false
+            }
         }
     }
 }
