@@ -15,7 +15,7 @@ Retry retry = new Retry()
 
 def allProductsCollectionID
 def allProductsHandle
-retry.runWithRetries(MAX_RETRIES, () -> {
+noOfRetries += retry.runWithRetries(MAX_RETRIES, () -> {
     result = sendRequest("GET", "$myStore${apiEndpoint}smart_collections.json", "", true).result
     allProductsCollectionID = result.smart_collections[0].id
     allProductsHandle = result.smart_collections[0].handle
