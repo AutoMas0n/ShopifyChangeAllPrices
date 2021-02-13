@@ -62,10 +62,7 @@ while(paginate){
             retry.runWithRetries(MAX_RETRIES, () -> {
                 pageResponse = sendRequest("GET", "$nextPageLink", "", true)
             })
-            pageResponse.result.products.each {
-            productList.add(it.id)
-                println it.id
-            }
+            pageResponse.result.products.each { productList.add(it.id) }
             headerLink = pageResponse.headers.Link
         } else{
             paginate = false
@@ -73,9 +70,7 @@ while(paginate){
     }
 }
 
-println productList.size()
-
-//println result.dump()
+println productList.unique().size()
 
 //def productID = result.products[0].id
 //def productBody = result.products.body_html
@@ -86,7 +81,6 @@ println productList.size()
 //retry.runWithRetries(MAX_RETRIES, () -> {
 //    result = sendRequest("GET", "$myStore${apiEndpoint}products/${productID}.json", "", true).result
 //})
-
 
 def sendRequest(String reqMethod, String URL, String message, Boolean failOnError){
     def response = [:]
