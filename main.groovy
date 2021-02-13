@@ -37,6 +37,7 @@ noOfRetries += retry.runWithRetries(MAX_RETRIES, () -> {
     pageResponse = sendRequest("GET", "$myStore${apiEndpoint}collections/${allProductsCollectionID}/products.json?limit=100", "", true)
 })
 
+println "Getting all Product IDs..."
 boolean paginate = true
 def nextPageLink
 def headerLink = pageResponse.headers.Link
@@ -49,7 +50,6 @@ while(paginate){
             if (nextPageLink.contains(',')) nextPageLink = nextPageLink.split(',')[1]
             nextPageLink = nextPageLink.split("<")[1]
             nextPageLink = nextPageLink.split(">")[0]
-            println nextPageLink
             noOfRetries += retry.runWithRetries(MAX_RETRIES, () -> {
                 pageResponse = sendRequest("GET", "$nextPageLink", "", true)
             })
@@ -61,7 +61,9 @@ while(paginate){
     }
 }
 
-println productList.unique().size()
+
+if(productList.unique().size() != productCount) throw new Exception("Error fetching all product IDs\n ${productList.unique().size()} != $productCount")
+else println "All unique product IDs accounted for."
 
 
 //def productID = result.products[0].id
