@@ -60,7 +60,7 @@ while(paginate){
 if(productList.unique().size() != productCount) throw new Exception("Error fetching all product IDs\n ${productList.unique().size()} != $productCount")
 else println "All unique product IDs accounted for."
 
-
+println "Fetching product details for $productCount products.."
 //def productID = result.products[0].id
 //def productBody = result.products.body_html
 //println productID
