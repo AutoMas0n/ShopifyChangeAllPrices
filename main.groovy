@@ -8,30 +8,25 @@ import java.util.concurrent.ExecutionException
 @Field def MAX_RETRIES = 10
 @Field def ITEM_PER_PAGE_LIMIT = 250
 @Field def noOfRetries = 0
+@Field Retry retry = new Retry()
 
 def result
-Retry retry = new Retry()
+
 
 def allProductsCollectionID
 def allProductsHandle
-noOfRetries += retry.runWithRetries(MAX_RETRIES, () -> {
-    result = sendRequest("GET", "$myStore${apiEndpoint}smart_collections.json", "", true).result
-    allProductsCollectionID = result.smart_collections[0].id
-    allProductsHandle = result.smart_collections[0].handle
-})
+result = simplifyShopifyGet("$myStore${apiEndpoint}smart_collections.json").result
+allProductsCollectionID = result.smart_collections[0].id
+allProductsHandle = result.smart_collections[0].handle
 
 def productCount
 println "$allProductsHandle:$allProductsCollectionID"
 
-noOfRetries += retry.runWithRetries(MAX_RETRIES, () -> {
-    productCount = sendRequest("GET", "$myStore/admin/products/count.json?collection_id=${allProductsCollectionID}", "", true).result.count
-})
+productCount = simplifyShopifyGet("$myStore/admin/products/count.json?collection_id=${allProductsCollectionID}").result.count
 println "Total number of products: $productCount"
 
 def pageResponse
-noOfRetries += retry.runWithRetries(MAX_RETRIES, () -> {
-    pageResponse = sendRequest("GET", "$myStore${apiEndpoint}collections/${allProductsCollectionID}/products.json?limit=$ITEM_PER_PAGE_LIMIT", "", true)
-})
+pageResponse = simplifyShopifyGet("$myStore${apiEndpoint}collections/${allProductsCollectionID}/products.json?limit=100")
 
 println "Getting all Product IDs..."
 def productList = []
@@ -52,9 +47,7 @@ while(paginate){
                 nextPageLink = nextPageLink.split(">")[0]
                 if(previousPageList!=null && !previousPageList.contains(nextPageLink)) previousPageList.add(nextPageLink)
                 else throw new Exception("Error during pagination: Duplicate page URL was found during parsing.")
-                noOfRetries += retry.runWithRetries(MAX_RETRIES, () -> {
-                    pageResponse = sendRequest("GET", "$nextPageLink", "", true)
-                })
+                pageResponse = simplifyShopifyGet("$nextPageLink")
                 pageResponse.result.products.each { productList.add(it.id) }
                 headerLink = pageResponse.headers.Link
             } else {
@@ -80,6 +73,14 @@ else println "All unique product IDs accounted for."
 
 println "RETRY COUNT = $noOfRetries"
 
+def simplifyShopifyGet(String endpoint){
+    def result
+    noOfRetries += retry.runWithRetries(MAX_RETRIES, () -> {
+        result = sendRequest("GET", "$endpoint", "", true)
+    })
+    return result
+}
+
 def sendRequest(String reqMethod, String URL, String message, Boolean failOnError){
     def response = [:]
     def request = new URL(URL).openConnection()
@@ -97,8 +98,6 @@ def sendRequest(String reqMethod, String URL, String message, Boolean failOnErro
         sleep rateLimit * 1000
         response.retry
     }
-    //todo remove this
-//    println request.getHeaderField("X-Shopify-Shop-Api-Call-Limit")
     response.rc = getRC
     response.headers = request.getHeaderFields()
     def slurper = new JsonSlurper()
