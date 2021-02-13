@@ -28,17 +28,16 @@ noOfRetries += retry.runWithRetries(MAX_RETRIES, () -> {
 })
 println "Total number of products: $productCount"
 
-
-def productList = []
-
 def pageResponse
 noOfRetries += retry.runWithRetries(MAX_RETRIES, () -> {
-    pageResponse = sendRequest("GET", "$myStore${apiEndpoint}collections/${allProductsCollectionID}/products.json?limit=$ITEM_PER_PAGE_LIMIT", "", true)
+    pageResponse = sendRequest("GET", "$myStore${apiEndpoint}collections/${allProductsCollectionID}/products.json?limit=100", "", true)
 })
 
 println "Getting all Product IDs..."
+def productList = []
 boolean paginate = true
 def nextPageLink
+def previousPageList = []
 def headerLink = pageResponse.headers.Link
 pageResponse.result.products.each { productList.add(it.id) }
 while(paginate){
@@ -51,6 +50,8 @@ while(paginate){
                 if (nextPageLink.contains(',')) nextPageLink = nextPageLink.split(',')[1]
                 nextPageLink = nextPageLink.split("<")[1]
                 nextPageLink = nextPageLink.split(">")[0]
+                if(previousPageList!=null && !previousPageList.contains(nextPageLink)) previousPageList.add(nextPageLink)
+                else throw new Exception("Error during pagination: Duplicate page URL was found during parsing.")
                 noOfRetries += retry.runWithRetries(MAX_RETRIES, () -> {
                     pageResponse = sendRequest("GET", "$nextPageLink", "", true)
                 })
@@ -62,7 +63,6 @@ while(paginate){
         }
     }
 }
-
 
 if(productList.unique().size() != productCount) throw new Exception("Error fetching all product IDs\n ${productList.unique().size()} != $productCount")
 else println "All unique product IDs accounted for."
