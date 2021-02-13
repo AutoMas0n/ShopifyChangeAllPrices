@@ -43,32 +43,33 @@ while(noOfProductsToDisplay > MAX_LIMIT){
 
 
 retry.runWithRetries(MAX_RETRIES, () -> {
-    result = sendRequest("GET", "$myStore${apiEndpoint}collections/${allProductsCollectionID}/products.json?limit=20", "", true)
+    result = sendRequest("GET", "$myStore${apiEndpoint}collections/${allProductsCollectionID}/products.json?limit=100", "", true)
 })
 
 boolean paginate = true
 def nextPageLink
-def page = result.headers.Link
+def headerLink = result.headers.Link
 def pageResponse
 while(paginate){
-    if(page!=null) {
-        page.each {
-            nextPageLink = it
-            if(nextPageLink.contains(',')) nextPageLink = nextPageLink.split(',')[1]
+    if(headerLink.size() < 1) assert false: "Pagination failed. Could not get link to pages"
+    headerLink.each {
+        nextPageLink = it
+        if(nextPageLink.contains("rel=\"next\"")) {
+            if (nextPageLink.contains(',')) nextPageLink = nextPageLink.split(',')[1]
             nextPageLink = nextPageLink.split("<")[1]
             nextPageLink = nextPageLink.split(">")[0]
-            println nextPageLink
+        println nextPageLink
             retry.runWithRetries(MAX_RETRIES, () -> {
                 pageResponse = sendRequest("GET", "$nextPageLink", "", true)
             })
-            pageResponse.products.each{
-//                productList.add(it.id)
+            pageResponse.result.products.each {
+            productList.add(it.id)
                 println it.id
             }
-            page = pageResponse.headers.Link
+            headerLink = pageResponse.headers.Link
+        } else{
+            paginate = false
         }
-    } else{
-        paginate = false
     }
 }
 
