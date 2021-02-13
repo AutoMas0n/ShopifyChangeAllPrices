@@ -11,8 +11,6 @@ import java.util.concurrent.ExecutionException
 @Field Retry retry = new Retry()
 
 def result
-
-
 def allProductsCollectionID
 def allProductsHandle
 result = simplifyShopifyGet("$myStore${apiEndpoint}smart_collections.json").result
@@ -25,10 +23,9 @@ println "$allProductsHandle:$allProductsCollectionID"
 productCount = simplifyShopifyGet("$myStore/admin/products/count.json?collection_id=${allProductsCollectionID}").result.count
 println "Total number of products: $productCount"
 
+println "Getting all Product IDs..."
 def pageResponse
 pageResponse = simplifyShopifyGet("$myStore${apiEndpoint}collections/${allProductsCollectionID}/products.json?limit=$ITEM_PER_PAGE_LIMIT")
-
-println "Getting all Product IDs..."
 def productList = []
 boolean paginate = true
 def nextPageLink
@@ -61,6 +58,11 @@ if(productList.unique().size() != productCount) throw new Exception("Error fetch
 else println "All unique product IDs accounted for."
 
 println "Fetching product details for $productCount products.."
+//TODO create object to hold all product details (maybe try using a map)
+productList.each{
+    result = simplifyShopifyGet("$myStore${apiEndpoint}products/${it}.json").result
+    println result.product.title
+}
 //def productID = result.products[0].id
 //def productBody = result.products.body_html
 //println productID
