@@ -26,7 +26,7 @@ productCount = simplifyShopifyGet("$myStore/admin/products/count.json?collection
 println "Total number of products: $productCount"
 
 def pageResponse
-pageResponse = simplifyShopifyGet("$myStore${apiEndpoint}collections/${allProductsCollectionID}/products.json?limit=100")
+pageResponse = simplifyShopifyGet("$myStore${apiEndpoint}collections/${allProductsCollectionID}/products.json?limit=$ITEM_PER_PAGE_LIMIT")
 
 println "Getting all Product IDs..."
 def productList = []
