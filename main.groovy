@@ -8,6 +8,7 @@ import java.util.concurrent.ExecutionException
 @Field def MAX_RETRIES = 10
 @Field def MAX_LIMIT = 250
 @Field def noOfProductsToDisplay
+@Field def noOfRetries = 0
 
 def result
 Retry retry = new Retry()
@@ -23,26 +24,16 @@ retry.runWithRetries(MAX_RETRIES, () -> {
 def productCount
 println "$allProductsHandle:$allProductsCollectionID"
 
-retry.runWithRetries(MAX_RETRIES, () -> {
+noOfRetries += retry.runWithRetries(MAX_RETRIES, () -> {
     productCount = sendRequest("GET", "$myStore/admin/products/count.json?collection_id=${allProductsCollectionID}", "", true).result.count
 })
 println "Total number of products: $productCount"
 
-def products
+
 def productList = []
-noOfProductsToDisplay = productCount as int
-while(noOfProductsToDisplay > MAX_LIMIT){
-//    retry.runWithRetries(MAX_RETRIES, () -> {
-        products = sendRequest("GET", "$myStore${apiEndpoint}collections/${allProductsCollectionID}/products.json?limit=$MAX_LIMIT", "", true).result.products
-//    })
-    productList= products.withDefault(productList.&get)
-    noOfProductsToDisplay = noOfProductsToDisplay - MAX_LIMIT
-}
 
 
-
-
-retry.runWithRetries(MAX_RETRIES, () -> {
+noOfRetries += retry.runWithRetries(MAX_RETRIES, () -> {
     result = sendRequest("GET", "$myStore${apiEndpoint}collections/${allProductsCollectionID}/products.json?limit=100", "", true)
 })
 
@@ -59,7 +50,7 @@ while(paginate){
             nextPageLink = nextPageLink.split("<")[1]
             nextPageLink = nextPageLink.split(">")[0]
         println nextPageLink
-            retry.runWithRetries(MAX_RETRIES, () -> {
+            noOfRetries += retry.runWithRetries(MAX_RETRIES, () -> {
                 pageResponse = sendRequest("GET", "$nextPageLink", "", true)
             })
             pageResponse.result.products.each { productList.add(it.id) }
@@ -72,6 +63,7 @@ while(paginate){
 
 println productList.unique().size()
 
+
 //def productID = result.products[0].id
 //def productBody = result.products.body_html
 //println productID
@@ -81,6 +73,8 @@ println productList.unique().size()
 //retry.runWithRetries(MAX_RETRIES, () -> {
 //    result = sendRequest("GET", "$myStore${apiEndpoint}products/${productID}.json", "", true).result
 //})
+
+println "RETRY COUNT = $noOfRetries"
 
 def sendRequest(String reqMethod, String URL, String message, Boolean failOnError){
     def response = [:]
@@ -125,12 +119,12 @@ interface ThrowingTask {
 }
 
 class Retry implements  ThrowingTask {
-    boolean runWithRetries(int maxRetries, ThrowingTask t) {
+    int runWithRetries(int maxRetries, ThrowingTask t) {
         int count = 0;
         while (count < maxRetries) {
             try {
                 t.run();
-                return true;
+                return count;
             }
             catch (Exception  e) {
                 if (++count >= maxRetries)
