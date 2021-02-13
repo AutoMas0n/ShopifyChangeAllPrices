@@ -30,7 +30,7 @@ println "Total number of products: $productCount"
 
 def pageResponse
 noOfRetries += retry.runWithRetries(MAX_RETRIES, () -> {
-    pageResponse = sendRequest("GET", "$myStore${apiEndpoint}collections/${allProductsCollectionID}/products.json?limit=100", "", true)
+    pageResponse = sendRequest("GET", "$myStore${apiEndpoint}collections/${allProductsCollectionID}/products.json?limit=$ITEM_PER_PAGE_LIMIT", "", true)
 })
 
 println "Getting all Product IDs..."
@@ -133,6 +133,7 @@ class Retry implements  ThrowingTask {
             catch (Exception  e) {
                 if (++count >= maxRetries)
                     throw new Exception("Maximum amount of retries reached, giving up.")
+                sleep 100 * count //Add a delay as retries fail
             }
         }
     }
