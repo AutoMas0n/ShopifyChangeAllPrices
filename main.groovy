@@ -6,7 +6,7 @@ import java.util.concurrent.ExecutionException
 @Field def myStore = "https://fatima-jewellery.myshopify.com"
 @Field def apiEndpoint = "/admin/api/2021-01/"
 @Field def MAX_RETRIES = 10
-@Field def MAX_LIMIT = 250
+@Field def ITEM_PER_PAGE_LIMIT = 250
 @Field def noOfProductsToDisplay
 @Field def noOfRetries = 0
 
@@ -32,15 +32,15 @@ println "Total number of products: $productCount"
 
 def productList = []
 
-
+def pageResponse
 noOfRetries += retry.runWithRetries(MAX_RETRIES, () -> {
-    result = sendRequest("GET", "$myStore${apiEndpoint}collections/${allProductsCollectionID}/products.json?limit=100", "", true)
+    pageResponse = sendRequest("GET", "$myStore${apiEndpoint}collections/${allProductsCollectionID}/products.json?limit=100", "", true)
 })
 
 boolean paginate = true
 def nextPageLink
-def headerLink = result.headers.Link
-def pageResponse
+def headerLink = pageResponse.headers.Link
+pageResponse.result.products.each { productList.add(it.id) }
 while(paginate){
     if(headerLink.size() < 1) assert false: "Pagination failed. Could not get link to pages"
     headerLink.each {
@@ -49,7 +49,7 @@ while(paginate){
             if (nextPageLink.contains(',')) nextPageLink = nextPageLink.split(',')[1]
             nextPageLink = nextPageLink.split("<")[1]
             nextPageLink = nextPageLink.split(">")[0]
-        println nextPageLink
+            println nextPageLink
             noOfRetries += retry.runWithRetries(MAX_RETRIES, () -> {
                 pageResponse = sendRequest("GET", "$nextPageLink", "", true)
             })
