@@ -3,36 +3,83 @@ import groovy.transform.Field
 import java.nio.charset.StandardCharsets
 import java.util.concurrent.ExecutionException
 
-//def response = sendRequest("GET","https://fatima-jewellery.myshopify.com/admin/api/2021-01/shop.json","",true)
+@Field def myStore = "https://fatima-jewellery.myshopify.com"
+@Field def apiEndpoint = "/admin/api/2021-01/"
+@Field def MAX_RETRIES = 10
+@Field def ITEM_PER_PAGE_LIMIT = 250
+@Field def noOfRetries = 0
+@Field Retry retry = new Retry()
 
-//TODO Pagination https://shopify.dev/tutorials/make-paginated-requests-to-rest-admin-api
-
-
-@Field def MAX_RETRIES = 5
 def result
-Retry retry = new Retry()
+
 
 def allProductsCollectionID
 def allProductsHandle
-retry.runWithRetries(MAX_RETRIES, () -> {
-    result = sendRequest("GET", "https://fatima-jewellery.myshopify.com/admin/api/2021-01/smart_collections.json", "", true).result
-    allProductsCollectionID = result.smart_collections[0].id
-    allProductsHandle = result.smart_collections[0].handle
-})
+result = simplifyShopifyGet("$myStore${apiEndpoint}smart_collections.json").result
+allProductsCollectionID = result.smart_collections[0].id
+allProductsHandle = result.smart_collections[0].handle
 
 def productCount
 println "$allProductsHandle:$allProductsCollectionID"
 
-retry.runWithRetries(MAX_RETRIES, () -> {
-    productCount = sendRequest("GET", "https://fatima-jewellery.myshopify.com/admin/products/count.json?collection_id=${allProductsCollectionID}", "", true).result.count
-})
+productCount = simplifyShopifyGet("$myStore/admin/products/count.json?collection_id=${allProductsCollectionID}").result.count
 println "Total number of products: $productCount"
 
-retry.runWithRetries(MAX_RETRIES, () -> {
-    result = sendRequest("GET", "https://fatima-jewellery.myshopify.com/admin/api/2021-01/collections/${allProductsCollectionID}/products.json?limit=250", "", true)
-})
-println result.dump()
+def pageResponse
+pageResponse = simplifyShopifyGet("$myStore${apiEndpoint}collections/${allProductsCollectionID}/products.json?limit=100")
 
+println "Getting all Product IDs..."
+def productList = []
+boolean paginate = true
+def nextPageLink
+def previousPageList = []
+def headerLink = pageResponse.headers.Link
+pageResponse.result.products.each { productList.add(it.id) }
+while(paginate){
+    if(headerLink == null){
+        paginate = false
+    } else {
+        headerLink.each {
+            nextPageLink = it
+            if (nextPageLink.contains("rel=\"next\"")) {
+                if (nextPageLink.contains(',')) nextPageLink = nextPageLink.split(',')[1]
+                nextPageLink = nextPageLink.split("<")[1]
+                nextPageLink = nextPageLink.split(">")[0]
+                if(previousPageList!=null && !previousPageList.contains(nextPageLink)) previousPageList.add(nextPageLink)
+                else throw new Exception("Error during pagination: Duplicate page URL was found during parsing.")
+                pageResponse = simplifyShopifyGet("$nextPageLink")
+                pageResponse.result.products.each { productList.add(it.id) }
+                headerLink = pageResponse.headers.Link
+            } else {
+                paginate = false
+            }
+        }
+    }
+}
+
+if(productList.unique().size() != productCount) throw new Exception("Error fetching all product IDs\n ${productList.unique().size()} != $productCount")
+else println "All unique product IDs accounted for."
+
+
+//def productID = result.products[0].id
+//def productBody = result.products.body_html
+//println productID
+////println productBody
+//
+////individual product
+//retry.runWithRetries(MAX_RETRIES, () -> {
+//    result = sendRequest("GET", "$myStore${apiEndpoint}products/${productID}.json", "", true).result
+//})
+
+println "RETRY COUNT = $noOfRetries"
+
+def simplifyShopifyGet(String endpoint){
+    def result
+    noOfRetries += retry.runWithRetries(MAX_RETRIES, () -> {
+        result = sendRequest("GET", "$endpoint", "", true)
+    })
+    return result
+}
 
 def sendRequest(String reqMethod, String URL, String message, Boolean failOnError){
     def response = [:]
@@ -51,14 +98,14 @@ def sendRequest(String reqMethod, String URL, String message, Boolean failOnErro
         sleep rateLimit * 1000
         response.retry
     }
-    //todo remove this
-//    println request.getHeaderField("X-Shopify-Shop-Api-Call-Limit")
     response.rc = getRC
     response.headers = request.getHeaderFields()
     def slurper = new JsonSlurper()
     try {
         if(request.getInputStream().available())
             response.result = slurper.parseText(request.getInputStream().getText())
+        else
+            throw new Exception("failed to get result from inputStream, treating as a failure")
     } catch (Exception e) {
         if(failOnError){
             assert false : "Request made to $URL failed.\nResponse code is: $getRC\n${request.getResponseMessage()}\n" +
@@ -75,16 +122,17 @@ interface ThrowingTask {
 }
 
 class Retry implements  ThrowingTask {
-    boolean runWithRetries(int maxRetries, ThrowingTask t) {
+    int runWithRetries(int maxRetries, ThrowingTask t) {
         int count = 0;
         while (count < maxRetries) {
             try {
                 t.run();
-                return true;
+                return count;
             }
             catch (Exception  e) {
                 if (++count >= maxRetries)
                     throw new Exception("Maximum amount of retries reached, giving up.")
+                sleep 100 * count //Add a delay as retries fail
             }
         }
     }
