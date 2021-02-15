@@ -75,13 +75,10 @@ for (it in productList) {
 //TODO verify products.size() is the same as productCount
 //if(products.size() != (productCount as int)) throw new Exception("Could not fetch all products")
 
-//TODO Get meta information, check if exist
 products.each{
     println it.getValue().product.title
     String body_html = it.getValue().product.body_html
     if(body_html.contains("<meta")){
-//        def meta = body_html.split('>')[0] + ' </meta>'
-//        meta = meta.replace("<meta","<meta>")
         def meta = body_html.split('>')[0]
         meta = meta.split("<meta")[1].trim()
         def metaMap = getMetaData(meta)
