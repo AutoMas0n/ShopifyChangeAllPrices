@@ -1,5 +1,6 @@
 import groovy.json.JsonSlurper
 import groovy.transform.Field
+import groovy.xml.DOMBuilder
 import groovy.xml.slurpersupport.GPathResult
 
 import java.nio.charset.StandardCharsets
@@ -68,8 +69,7 @@ for (it in productList) {
     products.put(it,result)
     testCount++
     println testCount
-    if(testCount>20) break
-//    break
+    if(testCount>0) break
 }
 //Every product is stored in products map object
 //TODO verify products.size() is the same as productCount
@@ -80,9 +80,10 @@ products.each{
     println it.getValue().product.title
     String body_html = it.getValue().product.body_html
     if(body_html.contains("<meta")){
-        def page = new XmlParser().parseText(body_html)
-        println page
-//        GPathResult.
+        def meta = body_html.split('>')[0] + ' </meta>'
+        meta = meta.replace("<meta","<meta>")
+        println meta
+        def page = DOMBuilder.parse(new StringReader(meta))
     }
 }
 
