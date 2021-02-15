@@ -97,8 +97,8 @@ def sendRequest(String reqMethod, String URL, String message, Boolean failOnErro
     def rateLimit = request.getHeaderField("Retry-After")
     if(rateLimit != null){
         println "########################## RATE WAS LIMITED #####################################"
-        sleep rateLimit * 1000
-        response.retry
+        sleep (rateLimit * 10000)
+        sendRequest(reqMethod,URL,message,failOnError)
     }
     response.rc = getRC
     response.headers = request.getHeaderFields()
