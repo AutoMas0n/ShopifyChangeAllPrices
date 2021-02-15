@@ -58,20 +58,21 @@ if(productList.unique().size() != productCount) throw new Exception("Error fetch
 else println "All unique product IDs accounted for."
 
 println "Fetching product details for $productCount products.."
-//TODO create object to hold all product details (maybe try using a map)
-productList.each{
+def products = [:]
+def testCount = 0
+//TODO Progress bar https://github.com/ctongfei/progressbar
+for (it in productList) {
     result = simplifyShopifyGet("$myStore${apiEndpoint}products/${it}.json").result
-    println result.product.title
+    products.put(it,result)
+    testCount++
+    println testCount
+    if(testCount>20) break
+//    break
 }
-//def productID = result.products[0].id
-//def productBody = result.products.body_html
-//println productID
-////println productBody
-//
-////individual product
-//retry.runWithRetries(MAX_RETRIES, () -> {
-//    result = sendRequest("GET", "$myStore${apiEndpoint}products/${productID}.json", "", true).result
-//})
+products.each{
+    println it.getValue().product.title
+//    println it.getValue().product.body_html
+}
 
 println "RETRY COUNT = $noOfRetries"
 
