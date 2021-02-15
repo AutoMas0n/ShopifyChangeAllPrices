@@ -80,14 +80,25 @@ products.each{
     println it.getValue().product.title
     String body_html = it.getValue().product.body_html
     if(body_html.contains("<meta")){
-        def meta = body_html.split('>')[0] + ' </meta>'
-        meta = meta.replace("<meta","<meta>")
-        println meta
-        def page = DOMBuilder.parse(new StringReader(meta))
+//        def meta = body_html.split('>')[0] + ' </meta>'
+//        meta = meta.replace("<meta","<meta>")
+        def meta = body_html.split('>')[0]
+        meta = meta.split("<meta")[1].trim()
+        def metaMap = getMetaData(meta)
+        println metaMap
     }
 }
 
 println "RETRY COUNT = $noOfRetries"
+
+def getMetaData(String meta){
+    def data = meta.split(" ")
+    def map = [:]
+    data.each{
+        map.put(it.split('=')[0],it.split('=')[1].replaceAll('"',""))
+    }
+    return map
+}
 
 def simplifyShopifyGet(String endpoint){
     def result
