@@ -1,5 +1,7 @@
 import groovy.json.JsonSlurper
 import groovy.transform.Field
+import groovy.xml.slurpersupport.GPathResult
+
 import java.nio.charset.StandardCharsets
 import java.util.concurrent.ExecutionException
 
@@ -69,9 +71,19 @@ for (it in productList) {
     if(testCount>20) break
 //    break
 }
+//Every product is stored in products map object
+//TODO verify products.size() is the same as productCount
+//if(products.size() != (productCount as int)) throw new Exception("Could not fetch all products")
+
+//TODO Get meta information, check if exist
 products.each{
     println it.getValue().product.title
-//    println it.getValue().product.body_html
+    String body_html = it.getValue().product.body_html
+    if(body_html.contains("<meta")){
+        def page = new XmlParser().parseText(body_html)
+        println page
+//        GPathResult.
+    }
 }
 
 println "RETRY COUNT = $noOfRetries"
