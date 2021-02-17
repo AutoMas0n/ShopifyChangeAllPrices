@@ -75,7 +75,7 @@ for (it in productList) {
 //TODO verify products.size() is the same as productCount
 //if(products.size() != (productCount as int)) throw new Exception("Could not fetch all products")
 
-//TODO account for this as well <meta weight="2.1" metal="gold" karat="18" diamond="true">
+//TODO account for products without meta an display URL to console + file
 products.each{
     println it.getValue().product.title
     String body_html = it.getValue().product.body_html
