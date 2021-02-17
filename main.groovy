@@ -76,6 +76,7 @@ for (it in productList) {
 //if(products.size() != (productCount as int)) throw new Exception("Could not fetch all products")
 
 //TODO account for products without meta an display URL to console + file
+//TODO does this really need to be iterated again?
 products.each{
     println it.getValue().product.title
     String body_html = it.getValue().product.body_html
@@ -86,6 +87,8 @@ products.each{
         println metaMap
     }
 }
+
+//TODO is this happening for products less than 1 g?
 
 println "RETRY COUNT = $noOfRetries"
 
