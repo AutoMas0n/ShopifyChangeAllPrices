@@ -67,8 +67,11 @@ if(productList.unique().size() != productCount) throw new Exception("Error fetch
 else println "All unique product IDs accounted for."
 
 productInventory.each{
-    println it.id
+//    println it.id
 //    println it.body_html //TODO check for meta tags, if missing print  https://fatima-jewellery.myshopify.com/admin/products/${it.id}
+    if(!it.body_html.contains("<meta")){
+        println "https://fatima-jewellery.myshopify.com/admin/products/${it.id}"
+    }
 }
 //println "Fetching product details for $productCount products.."
 //def products = [:]
