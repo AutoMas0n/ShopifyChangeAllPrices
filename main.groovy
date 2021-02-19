@@ -71,7 +71,7 @@ productInventory.each{
     if(it.body_html.contains("<meta")){
         def meta = it.body_html.split('>')[0]
         meta = meta.split("<meta")[1].trim()
-        productList.add(getMetaData(meta))
+        productList.add(getMetaData("${it.id}",meta))
     } else {
         println "Missing meta tags: https://fatima-jewellery.myshopify.com/admin/products/${it.id}"
     }
@@ -84,12 +84,13 @@ productList.each { println it }
 
 println "RETRY COUNT = $noOfRetries"
 
-def getMetaData(String meta){
+def getMetaData(String id, String meta){
     def data = meta.split(" ")
     def map = [:]
     data.each{
         map.put(it.split('=')[0],it.split('=')[1].replaceAll('"',""))
     }
+    map.put("id",id)
     return map
 }
 
