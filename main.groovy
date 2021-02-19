@@ -77,7 +77,15 @@ productInventory.each{
     }
 }
 
-//productList.each { println it }
+//TODO look for options for variants
+productInventory.each{
+    if("${it.id}" == "8400852945") {
+//        result = simplifyShopifyGet("$myStore${apiEndpoint}products/${it.id}.json").result
+//        println result
+        println it
+    }
+}
+
 //TODO PUT /admin/api/2020-04/products/{product_id}.json for https://shopify.dev/docs/admin-api/rest/reference/products/product#update-2020-04
 
 
