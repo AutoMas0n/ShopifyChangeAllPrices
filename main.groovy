@@ -77,7 +77,9 @@ productInventory.each{
     }
 }
 
-productList.each { println it }
+//productList.each { println it }
+//TODO PUT /admin/api/2020-04/products/{product_id}.json for https://shopify.dev/docs/admin-api/rest/reference/products/product#update-2020-04
+
 
 //TODO Progress bar https://github.com/ctongfei/progressbar
 //TODO is this happening for products less than 1 g?
