@@ -1,7 +1,5 @@
 import groovy.json.JsonSlurper
 import groovy.transform.Field
-import groovy.xml.DOMBuilder
-import groovy.xml.slurpersupport.GPathResult
 
 import java.nio.charset.StandardCharsets
 import java.util.concurrent.ExecutionException
@@ -26,20 +24,20 @@ println "$allProductsHandle:$allProductsCollectionID"
 productCount = simplifyShopifyGet("$myStore/admin/products/count.json?collection_id=${allProductsCollectionID}").result.count
 println "Total number of products: $productCount"
 
-def productInventory = []
+
 
 println "Getting all Product IDs..."
 def pageResponse
 pageResponse = simplifyShopifyGet("$myStore${apiEndpoint}collections/${allProductsCollectionID}/products.json?limit=$ITEM_PER_PAGE_LIMIT")
 
-pageResponse.result.products.each { productInventory.add(it) }
 
-def productList = []
+
+def productInventory = []
 boolean paginate = true
 def nextPageLink
 def previousPageList = []
 def headerLink = pageResponse.headers.Link
-pageResponse.result.products.each { productList.add(it.id) }
+pageResponse.result.products.each { productInventory.add(it) }
 while(paginate){
     if(headerLink == null){
         paginate = false
@@ -53,7 +51,6 @@ while(paginate){
                 if(previousPageList!=null && !previousPageList.contains(nextPageLink)) previousPageList.add(nextPageLink)
                 else throw new Exception("Error during pagination: Duplicate page URL was found during parsing.")
                 pageResponse = simplifyShopifyGet("$nextPageLink")
-                pageResponse.result.products.each { productList.add(it.id) }
                 pageResponse.result.products.each { productInventory.add(it) }
                 headerLink = pageResponse.headers.Link
             } else {
@@ -63,44 +60,26 @@ while(paginate){
     }
 }
 
-if(productList.unique().size() != productCount) throw new Exception("Error fetching all product IDs\n ${productList.unique().size()} != $productCount")
+def productIDList = []
+productInventory.each{ productIDList.add(it.id) }
+
+if(productIDList.unique().size() != productCount) throw new Exception("Error fetching all product IDs\n ${productIDList.unique().size()} != $productCount")
 else println "All unique product IDs accounted for."
 
+def productList = []
 productInventory.each{
-//    println it.id
-//    println it.body_html //TODO check for meta tags, if missing print  https://fatima-jewellery.myshopify.com/admin/products/${it.id}
-    if(!it.body_html.contains("<meta")){
-        println "https://fatima-jewellery.myshopify.com/admin/products/${it.id}"
+    if(it.body_html.contains("<meta")){
+        def meta = it.body_html.split('>')[0]
+        meta = meta.split("<meta")[1].trim()
+        productList.add(getMetaData(meta))
+    } else {
+        println "Missing meta tags: https://fatima-jewellery.myshopify.com/admin/products/${it.id}"
     }
 }
-//println "Fetching product details for $productCount products.."
-//def products = [:]
-//def testCount = 0
-////TODO Progress bar https://github.com/ctongfei/progressbar
-//for (it in productList) {
-//    result = simplifyShopifyGet("$myStore${apiEndpoint}products/${it}.json").result
-//    products.put(it,result)
-//    testCount++
-//    println testCount
-//    if(testCount>0) break
-//}
-////Every product is stored in products map object
-////TODO verify products.size() is the same as productCount
-////if(products.size() != (productCount as int)) throw new Exception("Could not fetch all products")
-//
-////TODO account for products without meta an display URL to console + file
-////TODO does this really need to be iterated again?
-//products.each{
-//    println it.getValue().product.title
-//    String body_html = it.getValue().product.body_html
-//    if(body_html.contains("<meta")){
-//        def meta = body_html.split('>')[0]
-//        meta = meta.split("<meta")[1].trim()
-//        def metaMap = getMetaData(meta)
-//        println metaMap
-//    }
-//}
 
+productList.each { println it }
+
+//TODO Progress bar https://github.com/ctongfei/progressbar
 //TODO is this happening for products less than 1 g?
 
 println "RETRY COUNT = $noOfRetries"
