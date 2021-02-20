@@ -77,14 +77,29 @@ productInventory.each{
     }
 }
 
-//TODO look for options for variants
+
+
+//TODO remove any products with variants from the list
 productInventory.each{
-    if("${it.id}" == "8400852945") {
-//        result = simplifyShopifyGet("$myStore${apiEndpoint}products/${it.id}.json").result
-//        println result
-        println it
+//    if("${it.id}" == "8400852945") {
+//        println it.options.size()
+//        println it.options
+////        result = simplifyShopifyGet("$myStore${apiEndpoint}products/${it.id}.json").result
+////        println result
+//    }
+//    if("${it.id}" == "8400945041") { println it.options.size() }
+
+    //TODO what is wrong with this https://stackoverflow.com/questions/24952458/groovy-removeall-closure-not-removing-elements-in-list
+    if(it.options.size() > 1){
+        def id = it.id
+        productList.removeAll { (it.id == id) }
     }
 }
+
+println productList.size()
+//productList.each{
+//    println it
+//}
 
 //TODO PUT /admin/api/2020-04/products/{product_id}.json for https://shopify.dev/docs/admin-api/rest/reference/products/product#update-2020-04
 
