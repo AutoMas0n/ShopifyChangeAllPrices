@@ -75,15 +75,14 @@ productInventory.each{
     } else {
         println "Missing meta tags: https://fatima-jewellery.myshopify.com/admin/products/${it.id}"
     }
-}
-
-productInventory.each{
+    //Remove Variants
     String invID = it.id
     def ids = productList.id
     if(it.options.size() > 1) productList.remove(ids.indexOf(invID))
 }
 
 println productList.size()
+
 //productList.each{
 //    println it
 //}
