@@ -1,3 +1,4 @@
+import groovy.json.JsonBuilder
 import groovy.json.JsonSlurper
 import groovy.transform.Field
 
@@ -84,10 +85,30 @@ productInventory.each{
 println productList.size()
 
 //productList.each{
-//    println it
+//    String id = it.id
+//    if(id == "4874577412176") {
+//        println "HELLO YOOOOOO"
+//        def json = new JsonBuilder()
+//        //TODO PUT /admin/api/2020-04/products/{product_id}.json for https://shopify.dev/docs/admin-api/rest/reference/products/product#update-2020-04
+//        def root = json{
+//            "id" "SOMEID"
+//        }
+//        println put.toString()
+//        println json.toPrettyString()
+//    }
 //}
 
-//TODO PUT /admin/api/2020-04/products/{product_id}.json for https://shopify.dev/docs/admin-api/rest/reference/products/product#update-2020-04
+productList.each{
+    if(it.id == "4874577412176") {
+        println "HELLO YOOOOOO"
+        def json = new JsonBuilder()
+        def put = json{
+            "this is a test" "yellow"
+        }
+        println put.toString()
+        println json.toPrettyString()
+    }
+}
 
 
 //TODO Progress bar https://github.com/ctongfei/progressbar
