@@ -99,22 +99,21 @@ println productList.size()
 //}
 
 productList.each{
-    def id = it.id
-    if(id == "4874577412176") {
-        def title = "Updated Product Title"
+    def idVal = it.id
+    if(idVal == "4874577412176") {
+        def titleVal = "Updated Product Title"
         def json = new JsonBuilder()
-        json id:id, title:title
         def put = json{
             product{
-                "$id" id
-                "$title" title
+                id idVal
+                title titleVal
                 variants(
-                        id: "$id"
+                        id: "$idVal"
                 )
             }
         }
         println json.toPrettyString()
-        result = sendRequest("PUT", "$myStore/admin/api/2020-04/products/${id}.json", json.toString(), true).result
+        result = sendRequest("PUT", "$myStore/admin/api/2020-04/products/${idVal}.json", json.toString(), true).result
         println result
     }
 }
