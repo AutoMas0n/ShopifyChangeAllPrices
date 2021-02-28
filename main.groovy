@@ -15,6 +15,7 @@ import java.util.concurrent.ExecutionException
 def result
 def allProductsCollectionID
 def allProductsHandle
+
 result = simplifyShopifyGet("$myStore${apiEndpoint}smart_collections.json").result
 allProductsCollectionID = result.smart_collections[0].id
 allProductsHandle = result.smart_collections[0].handle
@@ -76,7 +77,7 @@ productInventory.each{
     } else {
         println "Missing meta tags: https://fatima-jewellery.myshopify.com/admin/products/${it.id}"
     }
-    //Remove Variants
+    //Remove Products with multiple Variants from list
     String invID = it.id
     def ids = productList.id
     if(it.options.size() > 1) productList.remove(ids.indexOf(invID))
@@ -99,21 +100,20 @@ println productList.size()
 //}
 
 productList.each{
-    String price = "100"
+    String priceVal = "100"
     long idVal = Long.valueOf("${it.id}")
-    if(idVal == 4874577412176) {
+    if(idVal == 8400945041) {
         def titleVal = "Updated Product Title"
         def json = new JsonBuilder()
         def put = json{
             product{
                 id idVal
-                title titleVal
-                variants(collect() {[ id: idVal, price: price]})
             }
         }
         println json.toPrettyString()
-        result = sendRequest("PUT", "$myStore/admin/api/2020-04/products/${idVal}.json", json.toString(), true).result
+        result = sendRequest("PUT", "$myStore/admin/api/2020-04/products/${idVal}.json", json.toPrettyString(), true).result
         println result
+        //TODO read first variant ID and construct a new json
     }
 }
 
@@ -141,6 +141,14 @@ def simplifyShopifyGet(String endpoint){
     return result
 }
 
+def simplifyShopifyPut(String endpoint, String message){
+    def result
+    noOfRetries += retry.runWithRetries(MAX_RETRIES, () -> {
+        result = sendRequest("GET", "$endpoint", message, true)
+    })
+    return result
+}
+
 def sendRequest(String reqMethod, String URL, String message, Boolean failOnError){
     def response = [:]
     def request = new URL(URL).openConnection()
@@ -149,6 +157,7 @@ def sendRequest(String reqMethod, String URL, String message, Boolean failOnErro
     String auth = args[0]
     String encoded = Base64.getEncoder().encodeToString(auth.getBytes(StandardCharsets.UTF_8))
     request.setRequestProperty("Authorization","Basic $encoded")
+    request.setRequestProperty("Content-Type", "application/json")
     if(!message.isEmpty())
         request.getOutputStream().write(message.getBytes("UTF-8"))
     def getRC = request.getResponseCode()
