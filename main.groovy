@@ -88,8 +88,7 @@ println productList.size()
 productList.each{
     String priceVal = "111"
     long idVal = Long.valueOf("${it.id}")
-    if(idVal == 8400945041) {
-        def titleVal = "Updated Product Title"
+    if(idVal == 4874577412176) {
         def json = new JsonBuilder()
         def put = json{
             product{
@@ -104,7 +103,6 @@ productList.each{
         put = json{
             product{
                 id idVal
-                title titleVal
                 variants(collect() {[ id: variantID, price: priceVal]}) //if you need multiple variants more coding required)
             }
         }
