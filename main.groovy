@@ -86,7 +86,7 @@ productInventory.each{
 println productList.size()
 
 productList.each{
-    String priceVal = "110"
+    String priceVal = "111"
     long idVal = Long.valueOf("${it.id}")
     if(idVal == 8400945041) {
         def titleVal = "Updated Product Title"
@@ -108,8 +108,7 @@ productList.each{
                 variants(collect() {[ id: variantID, price: priceVal]}) //if you need multiple variants more coding required)
             }
         }
-        result = sendRequest("PUT", "$myStore/admin/api/2020-04/products/${idVal}.json", json.toPrettyString(), true).result
-        println result
+        println simplifyShopifyPut("$myStore/admin/api/2020-04/products/${idVal}.json", json.toPrettyString()).result.product.variants
     }
 }
 
