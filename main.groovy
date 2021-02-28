@@ -99,17 +99,16 @@ println productList.size()
 //}
 
 productList.each{
-    def idVal = it.id
-    if(idVal == "4874577412176") {
+    String price = "100"
+    long idVal = Long.valueOf("${it.id}")
+    if(idVal == 4874577412176) {
         def titleVal = "Updated Product Title"
         def json = new JsonBuilder()
         def put = json{
             product{
                 id idVal
                 title titleVal
-                variants(
-                        id: "$idVal"
-                )
+                variants(collect() {[ id: idVal, price: price]})
             }
         }
         println json.toPrettyString()
