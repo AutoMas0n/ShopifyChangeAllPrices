@@ -85,22 +85,8 @@ productInventory.each{
 
 println productList.size()
 
-//productList.each{
-//    String id = it.id
-//    if(id == "4874577412176") {
-//        println "HELLO YOOOOOO"
-//        def json = new JsonBuilder()
-//        //TODO PUT /admin/api/2020-04/products/{product_id}.json for https://shopify.dev/docs/admin-api/rest/reference/products/product#update-2020-04
-//        def root = json{
-//            "id" "SOMEID"
-//        }
-//        println put.toString()
-//        println json.toPrettyString()
-//    }
-//}
-
 productList.each{
-    String priceVal = "100"
+    String priceVal = "110"
     long idVal = Long.valueOf("${it.id}")
     if(idVal == 8400945041) {
         def titleVal = "Updated Product Title"
@@ -111,9 +97,19 @@ productList.each{
             }
         }
         println json.toPrettyString()
+        def allVariants = simplifyShopifyPut("$myStore/admin/api/2020-04/products/${idVal}.json", json.toPrettyString()).result.product.variants
+        println allVariants[0]
+        def variantID = allVariants[0].id
+        println variantID
+        put = json{
+            product{
+                id idVal
+                title titleVal
+                variants(collect() {[ id: variantID, price: priceVal]}) //if you need multiple variants more coding required)
+            }
+        }
         result = sendRequest("PUT", "$myStore/admin/api/2020-04/products/${idVal}.json", json.toPrettyString(), true).result
         println result
-        //TODO read first variant ID and construct a new json
     }
 }
 
@@ -144,7 +140,7 @@ def simplifyShopifyGet(String endpoint){
 def simplifyShopifyPut(String endpoint, String message){
     def result
     noOfRetries += retry.runWithRetries(MAX_RETRIES, () -> {
-        result = sendRequest("GET", "$endpoint", message, true)
+        result = sendRequest("PUT", "$endpoint", message, true)
     })
     return result
 }
