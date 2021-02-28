@@ -95,18 +95,18 @@ productList.each{
                 id idVal
             }
         }
-        println json.toPrettyString()
         def allVariants = simplifyShopifyPut("$myStore/admin/api/2020-04/products/${idVal}.json", json.toPrettyString()).result.product.variants
-        println allVariants[0]
+        print "Changing price from: \$" + allVariants[0].price + " --> \$${priceVal}"
         def variantID = allVariants[0].id
-        println variantID
         put = json{
             product{
                 id idVal
                 variants(collect() {[ id: variantID, price: priceVal]}) //if you need multiple variants more coding required)
             }
         }
-        println simplifyShopifyPut("$myStore/admin/api/2020-04/products/${idVal}.json", json.toPrettyString()).result.product.variants
+        simplifyShopifyPut("$myStore/admin/api/2020-04/products/${idVal}.json", json.toPrettyString()).result.product.variants
+        print "done"
+        println ""
     }
 }
 
