@@ -11,6 +11,12 @@ import java.util.concurrent.ExecutionException
 @Field def ITEM_PER_PAGE_LIMIT = 250
 @Field def noOfRetries = 0
 @Field Retry retry = new Retry()
+@Field def karatRate = [:]
+
+karatRate."19" = 165
+karatRate."18" = 160
+karatRate."14" = 135
+karatRate."10" = 100
 
 def result
 def allProductsCollectionID
@@ -86,9 +92,9 @@ productInventory.each{
 println productList.size()
 
 productList.each{
-    String priceVal = "111"
     long idVal = Long.valueOf("${it.id}")
     if(idVal == 4874577412176) {
+        int newPrice = "${it.weight}".toDouble() * karatRate."${it.karat}".toInteger()
         def json = new JsonBuilder()
         def put = json{
             product{
@@ -96,17 +102,16 @@ productList.each{
             }
         }
         def allVariants = simplifyShopifyPut("$myStore/admin/api/2020-04/products/${idVal}.json", json.toPrettyString()).result.product.variants
-        print "Changing price from: \$" + allVariants[0].price + " --> \$${priceVal}"
+        print "Changing price from: \$" + allVariants[0].price + " --> \$${newPrice}"
         def variantID = allVariants[0].id
         put = json{
             product{
                 id idVal
-                variants(collect() {[ id: variantID, price: priceVal]}) //if you need multiple variants more coding required)
+                variants(collect() {[ id: variantID, price: newPrice]}) //if you need multiple variants more coding required)
             }
         }
         simplifyShopifyPut("$myStore/admin/api/2020-04/products/${idVal}.json", json.toPrettyString()).result.product.variants
-        print "done"
-        println ""
+        print "...done\n"
     }
 }
 
