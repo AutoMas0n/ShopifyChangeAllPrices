@@ -89,29 +89,43 @@ productInventory.each{
     if(it.options.size() > 1) productList.remove(ids.indexOf(invID))
 }
 
-println productList.size()
+//Remove products that aren't gold
+int i = 0
+def productsThatArentGold = []
+productList.each{
+    if(!it.metal.contains('gold')) productsThatArentGold.add(i)
+    i++
+}
+productsThatArentGold.each{ productList.removeAt(it) }
+println "Performing price change for a total of ${productList.size()} gold products"
 
+i=1
 productList.each{
     long idVal = Long.valueOf("${it.id}")
-    if(idVal == 4874577412176) {
-        int newPrice = "${it.weight}".toDouble() * karatRate."${it.karat}".toInteger()
-        def json = new JsonBuilder()
-        def put = json{
-            product{
-                id idVal
+    if(it.metal.contains("gold")) {
+        //Todo remove this to finalize
+        if (idVal == 4874577412176) {
+            int newPrice = "${it.weight}".toDouble() * karatRate."${it.karat}".toInteger()
+            def json = new JsonBuilder()
+            def put = json {
+                product {
+                    id idVal
+                }
             }
-        }
-        def allVariants = simplifyShopifyPut("$myStore/admin/api/2020-04/products/${idVal}.json", json.toPrettyString()).result.product.variants
-        print "Changing price from: \$" + allVariants[0].price + " --> \$${newPrice}"
-        def variantID = allVariants[0].id
-        put = json{
-            product{
-                id idVal
-                variants(collect() {[ id: variantID, price: newPrice]}) //if you need multiple variants more coding required)
+            def allVariants = simplifyShopifyPut("$myStore/admin/api/2020-04/products/${idVal}.json", json.toPrettyString()).result.product.variants
+            print "Changing price of product $idVal from: \$" + allVariants[0].price + " --> \$${newPrice}"
+            def variantID = allVariants[0].id
+            put = json {
+                product {
+                    id idVal
+                    variants(collect() { [id: variantID, price: newPrice] })
+                    //if you need multiple variants more coding required)
+                }
             }
+            simplifyShopifyPut("$myStore/admin/api/2020-04/products/${idVal}.json", json.toPrettyString()).result.product.variants
+            print "...done ($i/${productList.size()})\n"
+            i++
         }
-        simplifyShopifyPut("$myStore/admin/api/2020-04/products/${idVal}.json", json.toPrettyString()).result.product.variants
-        print "...done\n"
     }
 }
 
