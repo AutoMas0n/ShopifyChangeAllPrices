@@ -16,10 +16,10 @@ if(testMode) println "########## TEST MODE ENABLED, NO PRICE CHANGE WILL OCCUR #
 @Field Retry retry = new Retry()
 @Field def karatRate = [:]
 
-karatRate."19" = 165
-karatRate."18" = 160
-karatRate."14" = 135
-karatRate."10" = 100
+karatRate."19" = 150
+karatRate."18" = 150
+karatRate."14" = 130
+karatRate."10" = 90
 
 def result
 def allProductsCollectionID
@@ -116,7 +116,7 @@ productList.each{
             }
         }
         def allVariants = simplifyShopifyPut("$myStore/admin/api/2020-04/products/${idVal}.json", json.toPrettyString()).result.product.variants
-        print "Changing price of product $idVal from: \$" + allVariants[0].price + " --> \$${priceAlter}"
+        print "Changing price of $idVal from: \$" + allVariants[0].price + " --> \$${priceAlter}  (${it.weight} x " + karatRate."${it.karat}".toInteger() + ")"
         def variantID = allVariants[0].id
         put = json {
             product {
