@@ -116,7 +116,7 @@ productList.each{
             }
         }
         def allVariants = simplifyShopifyPut("$myStore/admin/api/2020-04/products/${idVal}.json", json.toPrettyString()).result.product.variants
-        print "Changing price of $idVal from: \$" + allVariants[0].price + " --> \$${priceAlter}  (${it.weight} x " + karatRate."${it.karat}".toInteger() + ")"
+        print "$idVal from: \$" + allVariants[0].price + " --> \$${priceAlter}  (${it.weight} x " + karatRate."${it.karat}".toInteger() + ")"
         def variantID = allVariants[0].id
         put = json {
             product {
