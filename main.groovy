@@ -5,15 +5,18 @@ import groovy.transform.Field
 import java.nio.charset.StandardCharsets
 import java.util.concurrent.ExecutionException
 
+@Field def testMode = true //Set to true if you don't want price change to occur
+if(testMode) println "########## TEST MODE ENABLED, NO PRICE CHANGE WILL OCCUR ############"
+
 @Field def myStore = "https://fatima-jewellery.myshopify.com"
 @Field def apiEndpoint = "/admin/api/2021-01/"
-@Field def MAX_RETRIES = 10
+@Field int MAX_RETRIES = 10
 @Field def ITEM_PER_PAGE_LIMIT = 250
-@Field def noOfRetries = 0
+@Field int noOfRetries = 0
 @Field Retry retry = new Retry()
 @Field def karatRate = [:]
 
-karatRate."19" = 165
+karatRate."19" = 200
 karatRate."18" = 160
 karatRate."14" = 135
 karatRate."10" = 100
@@ -32,13 +35,9 @@ println "$allProductsHandle:$allProductsCollectionID"
 productCount = simplifyShopifyGet("$myStore/admin/products/count.json?collection_id=${allProductsCollectionID}").result.count
 println "Total number of products: $productCount"
 
-
-
 println "Getting all Product IDs..."
 def pageResponse
 pageResponse = simplifyShopifyGet("$myStore${apiEndpoint}collections/${allProductsCollectionID}/products.json?limit=$ITEM_PER_PAGE_LIMIT")
-
-
 
 def productInventory = []
 boolean paginate = true
@@ -127,7 +126,7 @@ productList.each{
                     //if you need multiple variants more coding required)
                 }
             }
-            simplifyShopifyPut("$myStore/admin/api/2020-04/products/${idVal}.json", json.toPrettyString()).result.product.variants
+            if(!testMode) simplifyShopifyPut("$myStore/admin/api/2020-04/products/${idVal}.json", json.toPrettyString()).result.product.variants
             print "...done ($progressCount/${productList.size()})\n"
             progressCount++
         }
