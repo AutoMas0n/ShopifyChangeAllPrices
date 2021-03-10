@@ -16,7 +16,7 @@ if(testMode) println "########## TEST MODE ENABLED, NO PRICE CHANGE WILL OCCUR #
 @Field Retry retry = new Retry()
 @Field def karatRate = [:]
 
-karatRate."19" = 200
+karatRate."19" = 165
 karatRate."18" = 160
 karatRate."14" = 135
 karatRate."10" = 100
@@ -103,33 +103,31 @@ int progressCount=1
 productList.each{
     long idVal = Long.valueOf("${it.id}")
     if(it.metal.contains("gold")) {
-        //Todo remove this to finalize
-        if (idVal == 4874577412176) {
-            int newPrice = "${it.weight}".toDouble() * karatRate."${it.karat}".toInteger()
-            int priceAlter = Math.round(newPrice/10.0) * 10
-            if(priceAlter<newPrice) priceAlter += 9
-            else if (priceAlter>newPrice) priceAlter -= 1
+//        if (idVal == 4874577412176) {
+        int newPrice = "${it.weight}".toDouble() * karatRate."${it.karat}".toInteger()
+        int priceAlter = Math.round(newPrice/10.0) * 10
+        if(priceAlter<newPrice) priceAlter += 9
+        else if (priceAlter>newPrice) priceAlter -= 1
 
-            def json = new JsonBuilder()
-            def put = json {
-                product {
-                    id idVal
-                }
+        def json = new JsonBuilder()
+        def put = json {
+            product {
+                id idVal
             }
-            def allVariants = simplifyShopifyPut("$myStore/admin/api/2020-04/products/${idVal}.json", json.toPrettyString()).result.product.variants
-            print "Changing price of product $idVal from: \$" + allVariants[0].price + " --> \$${priceAlter}"
-            def variantID = allVariants[0].id
-            put = json {
-                product {
-                    id idVal
-                    variants(collect() { [id: variantID, price: priceAlter] })
-                    //if you need multiple variants more coding required)
-                }
-            }
-            if(!testMode) simplifyShopifyPut("$myStore/admin/api/2020-04/products/${idVal}.json", json.toPrettyString()).result.product.variants
-            print "...done ($progressCount/${productList.size()})\n"
-            progressCount++
         }
+        def allVariants = simplifyShopifyPut("$myStore/admin/api/2020-04/products/${idVal}.json", json.toPrettyString()).result.product.variants
+        print "Changing price of product $idVal from: \$" + allVariants[0].price + " --> \$${priceAlter}"
+        def variantID = allVariants[0].id
+        put = json {
+            product {
+                id idVal
+                variants(collect() { [id: variantID, price: priceAlter] })
+                //if you need multiple variants more coding required)
+            }
+        }
+        if(!testMode) simplifyShopifyPut("$myStore/admin/api/2020-04/products/${idVal}.json", json.toPrettyString()).result.product.variants
+        print "...done ($progressCount/${productList.size()})\n"
+        progressCount++
     }
 }
 
