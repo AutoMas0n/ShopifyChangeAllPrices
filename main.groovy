@@ -88,6 +88,7 @@ productInventory.each{
     if(it.options.size() > 1) productList.remove(ids.indexOf(invID))
 }
 
+//TODO Print URLS for additional products that are being removed from list
 def productsToRemove = []
 productList.each{
     double weight = "${it.weight}".toDouble()
