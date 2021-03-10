@@ -89,17 +89,18 @@ productInventory.each{
     if(it.options.size() > 1) productList.remove(ids.indexOf(invID))
 }
 
-//Remove products that aren't gold
-int i = 0
-def productsThatArentGold = []
+def productsToRemove = []
 productList.each{
-    if(!it.metal.contains('gold')) productsThatArentGold.add(i)
-    i++
+    double weight = "${it.weight}".toDouble()
+    if(!it.metal.contains('gold')) productsToRemove.add(it) //Remove products that aren't gold
+    else if(weight < 1) productsToRemove.add(it) //Remove products that are below 1 gram
 }
-productsThatArentGold.each{ productList.removeAt(it) }
+println productList.size()
+productList.removeAll(productsToRemove)
+
 println "Performing price change for a total of ${productList.size()} gold products"
 
-i=1
+int progressCount=1
 productList.each{
     long idVal = Long.valueOf("${it.id}")
     if(it.metal.contains("gold")) {
@@ -127,8 +128,8 @@ productList.each{
                 }
             }
             simplifyShopifyPut("$myStore/admin/api/2020-04/products/${idVal}.json", json.toPrettyString()).result.product.variants
-            print "...done ($i/${productList.size()})\n"
-            i++
+            print "...done ($progressCount/${productList.size()})\n"
+            progressCount++
         }
     }
 }
