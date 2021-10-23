@@ -1,3 +1,4 @@
+//Usage: main.groovy <USER_TOKEN>:<SECRET_TOKEN>
 import groovy.json.JsonBuilder
 import groovy.json.JsonSlurper
 import groovy.transform.Field
@@ -16,10 +17,10 @@ if(testMode) println "########## TEST MODE ENABLED, NO PRICE CHANGE WILL OCCUR #
 @Field Retry retry = new Retry()
 @Field def karatRate = [:]
 
-karatRate."19" = 150
+karatRate."19" = 155
 karatRate."18" = 150
 karatRate."14" = 130
-karatRate."10" = 90
+karatRate."10" = 100
 
 def result
 def allProductsCollectionID
@@ -88,12 +89,16 @@ productInventory.each{
     if(it.options.size() > 1) productList.remove(ids.indexOf(invID))
 }
 
-//TODO Print URLS for additional products that are being removed from list
 def productsToRemove = []
 productList.each{
     double weight = "${it.weight}".toDouble()
-    if(!it.metal.contains('gold')) productsToRemove.add(it) //Remove products that aren't gold
-    else if(weight < 1) productsToRemove.add(it) //Remove products that are below 1 gram
+
+    if(!it.metal.contains('gold')) {
+        productsToRemove.add(it) //Remove products that aren't gold
+        println "Not gold: "
+    } else if(weight < 1){
+        productsToRemove.add(it) //Remove products that are below 1 gram
+    }
 }
 println productList.size()
 productList.removeAll(productsToRemove)
