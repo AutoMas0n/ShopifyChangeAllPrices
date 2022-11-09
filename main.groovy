@@ -17,10 +17,10 @@ if(testMode) println "########## TEST MODE ENABLED, NO PRICE CHANGE WILL OCCUR #
 @Field Retry retry = new Retry()
 @Field def karatRate = [:]
 
-karatRate."19" = 155
-karatRate."18" = 150
-karatRate."14" = 130
-karatRate."10" = 100
+karatRate."19" = 165
+karatRate."18" = 160
+karatRate."14" = 140
+karatRate."10" = 110
 
 def result
 def allProductsCollectionID
