@@ -143,6 +143,7 @@ productList.each{
 //Verified this not happening for products less than 1g
 
 println "RETRY COUNT = $noOfRetries"
+println "RATE LIMIT COUNT = $rateLimitCount"
 
 def getMetaData(String id, String meta){
     def data = meta.split(" ")
