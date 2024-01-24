@@ -2,10 +2,14 @@
 import groovy.json.JsonBuilder
 import groovy.json.JsonSlurper
 import groovy.transform.Field
+//TODO Implement a logger
+//import org.slf4j.Logger
+//import org.slf4j.LoggerFactory
 
 import java.nio.charset.StandardCharsets
 import java.util.concurrent.ExecutionException
 
+//@Field Logger logger = LoggerFactory.getLogger(getClass().name)
 @Field def testMode = true //Set to true if you don't want price change to occur
 if(testMode) println "########## TEST MODE ENABLED, NO PRICE CHANGE WILL OCCUR ############"
 
@@ -16,11 +20,12 @@ if(testMode) println "########## TEST MODE ENABLED, NO PRICE CHANGE WILL OCCUR #
 @Field int noOfRetries = 0
 @Field Retry retry = new Retry()
 @Field def karatRate = [:]
+@Field int rateLimitCount = 0
 
-karatRate."19" = 165
-karatRate."18" = 160
-karatRate."14" = 140
-karatRate."10" = 110
+karatRate."19" = 180
+karatRate."18" = 175
+karatRate."14" = 150
+karatRate."10" = 120
 
 def result
 def allProductsCollectionID
@@ -43,29 +48,27 @@ pageResponse = simplifyShopifyGet("$myStore${apiEndpoint}collections/${allProduc
 def productInventory = []
 boolean paginate = true
 def nextPageLink
-def previousPageList = []
-def headerLink = pageResponse.headers.Link
-pageResponse.result.products.each { productInventory.add(it) }
-while(paginate){
-    if(headerLink == null){
-        paginate = false
-    } else {
-        headerLink.each {
-            nextPageLink = it
-            if (nextPageLink.contains("rel=\"next\"")) {
-                if (nextPageLink.contains(',')) nextPageLink = nextPageLink.split(',')[1]
-                nextPageLink = nextPageLink.split("<")[1]
-                nextPageLink = nextPageLink.split(">")[0]
-                if(previousPageList!=null && !previousPageList.contains(nextPageLink)) previousPageList.add(nextPageLink)
-                else throw new Exception("Error during pagination: Duplicate page URL was found during parsing.")
-                pageResponse = simplifyShopifyGet("$nextPageLink")
-                pageResponse.result.products.each { productInventory.add(it) }
-                headerLink = pageResponse.headers.Link
-            } else {
-                paginate = false
-            }
+
+while (paginate) {
+    def currentUrl = nextPageLink ?: "$myStore${apiEndpoint}collections/${allProductsCollectionID}/products.json?limit=$ITEM_PER_PAGE_LIMIT"
+    pageResponse = simplifyShopifyGet(currentUrl)
+    def linkHeader = pageResponse.headers['link']
+    //logger.debug "Link header: $linkHeader"
+
+    if (linkHeader) {
+        def links = linkHeader[0].split(',').collectEntries {
+            def (url, rel) = it.trim().replaceAll(/<|>/, '').split('; ')
+            [(rel.split('=')[1].replaceAll("\"", "")) : url]
         }
+        nextPageLink = links['next']
+        //logger.debug "Next page link: $nextPageLink"
+        paginate = nextPageLink != null
+    } else {
+        paginate = false
     }
+
+    pageResponse.result.products.each { productInventory.add(it) }
+    //logger.debug "Collected products count: ${productInventory.size()}"
 }
 
 def productIDList = []
@@ -137,9 +140,7 @@ productList.each{
     }
 }
 
-
-//TODO Progress bar https://github.com/ctongfei/progressbar
-//TODO is this happening for products less than 1 g?
+//Verified this not happening for products less than 1g
 
 println "RETRY COUNT = $noOfRetries"
 
@@ -170,6 +171,9 @@ def simplifyShopifyPut(String endpoint, String message){
 }
 
 def sendRequest(String reqMethod, String URL, String message, Boolean failOnError){
+    //logger.debug "Request Method: $reqMethod"
+    //logger.debug "Request URL: $URL"
+    //logger.debug "Request Body: $message"
     def response = [:]
     def request = new URL(URL).openConnection()
     request.setDoOutput(true)
@@ -183,24 +187,33 @@ def sendRequest(String reqMethod, String URL, String message, Boolean failOnErro
     def getRC = request.getResponseCode()
     def rateLimit = request.getHeaderField("Retry-After")
     if(rateLimit != null){
-        println "########################## RATE WAS LIMITED #####################################"
+        rateLimitCount++
+        //logger.debug "########################## RATE WAS LIMITED #####################################"
         sleep (rateLimit * 10000)
         sendRequest(reqMethod,URL,message,failOnError)
     }
     response.rc = getRC
     response.headers = request.getHeaderFields()
+    //logger.debug "Response headers: ${response.headers}"
     def slurper = new JsonSlurper()
     try {
-        if(request.getInputStream().available())
-            response.result = slurper.parseText(request.getInputStream().getText())
-        else
+        if (request.getInputStream()) {
+            request.getInputStream().withCloseable { stream ->
+                response.result = slurper.parseText(stream.text)
+            }
+        } else {
             throw new Exception("failed to get result from inputStream, treating as a failure")
+        }
     } catch (Exception e) {
-        if(failOnError){
-            assert false : "Request made to $URL failed.\nResponse code is: $getRC\n${request.getResponseMessage()}\n" +
-                    "${request.getErrorStream().getText()}\nException: $e"
-        } else{
-            response.result = request.getErrorStream().getText()
+        def errorStream = request.getErrorStream()?.getText() ?: 'No error stream available'
+        println "Request failed with exception: $e"
+        println "Response code is: $getRC"
+        println "Response message: ${request.getResponseMessage()}"
+        println "Error stream: $errorStream"
+        if (failOnError) {
+            assert false : "Request made to $URL failed.\nResponse code is: $getRC\n${request.getResponseMessage()}\n$errorStream\nException: $e"
+        } else {
+            response.result = errorStream
         }
     }
     return response
