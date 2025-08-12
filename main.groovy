@@ -22,10 +22,10 @@ if(testMode) println "########## TEST MODE ENABLED, NO PRICE CHANGE WILL OCCUR #
 @Field def karatRate = [:]
 @Field int rateLimitCount = 0
 
-karatRate."19" = 230
-karatRate."18" = 225
-karatRate."14" = 190
-karatRate."10" = 155
+karatRate."19" = 280
+karatRate."18" = 270
+karatRate."14" = 230
+karatRate."10" = 190
 
 def result
 def allProductsCollectionID
